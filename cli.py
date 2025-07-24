@@ -25,7 +25,17 @@ class TerminalPetsCLI:
             'mood': self.check_mood,
             'new': self.create_new_pet,
             'load': self.load_existing_pet,
-            'clear': self.clear_screen
+            'clear': self.clear_screen,
+            'personality': self.show_personality,
+            'traits': self.show_personality,
+            'memory': self.show_memory,
+            'memories': self.show_memory,
+            'evolution': self.show_evolution,
+            'evolve': self.trigger_evolution,
+            'insights': self.show_behavioral_insights,
+            'patterns': self.show_behavioral_patterns,
+            'environment': self.show_environment_info,
+            'preferences': self.show_preferences
         }
         self.food_types = ["kibble", "treat", "vegetable", "meat", "fish"]
         self.activity_types = ["fetch", "tug", "puzzle", "cuddle", "training"]
@@ -41,9 +51,11 @@ class TerminalPetsCLI:
         print("=" * 70)
         print("                          TERMINAL PETS")
         print("                     Virtual Pet Simulator")
-        print("                         Version 1.0")
+        print("                         Version 2.0")
+        print("                    Advanced Evolution Engine")
         print("=" * 70)
         print("\nWelcome! Your digital companion awaits...")
+        print("New in v2.0: Personality traits, behavioral learning, environmental adaptation")
     def handle_existing_save(self):
         save_info = self.game_manager.get_save_info()
         if save_info:
@@ -139,6 +151,15 @@ class TerminalPetsCLI:
         print("  status         - Show pet status")
         print("  info           - Detailed pet info")
         print("  mood           - Check pet mood")
+        print("\nPersonality & Evolution (v2.0):")
+        print("  personality    - Show personality traits")
+        print("  memory         - View pet's memories")
+        print("  evolution      - Check evolution status")
+        print("  evolve         - Trigger evolution check")
+        print("  insights       - Show behavioral insights")
+        print("  patterns       - Show learned patterns")
+        print("  environment    - Show environmental effects")
+        print("  preferences    - Show learned preferences")
         print("\nGame:")
         print("  save           - Save game")
         print("  new            - Create new pet")
@@ -249,12 +270,194 @@ class TerminalPetsCLI:
             self.save_game([])
             print(f"{self.game_manager.pet.name} will miss you!")
         self.running = False
-def main():
-    try:
-        cli = TerminalPetsCLI()
-        cli.start()
-    except Exception as e:
-        print(f"Fatal error: {e}")
-        sys.exit(1)
-if __name__ == "__main__":
-    main()
+    def show_personality(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        if not hasattr(pet, 'personality_traits'):
+            print("Personality system not available for this pet.")
+            return
+        print(f"\n{pet.name}'s Personality Profile:")
+        print("=" * 40)
+        for name, trait in pet.personality_traits.items():
+            level = trait.get_level()
+            bar = self.create_stat_bar(trait.strength)
+            print(f"  {name.capitalize():12} [{bar}] {trait.strength:3.0f}/100 ({level})")
+        print(f"\nPersonality Summary: {pet.get_personality_summary()}")
+        recent_changes = []
+        for trait in pet.personality_traits.values():
+            if trait.development_history:
+                recent_changes.extend(trait.development_history[-2:])  
+        if recent_changes:
+            recent_changes.sort(key=lambda x: x["timestamp"], reverse=True)
+            print(f"\nRecent personality developments:")
+            for change in recent_changes[:3]:  
+                trait_name = change.get("reason", "").split()[-1] if change.get("reason") else "unknown"
+                print(f"  - {change['timestamp'].strftime('%m/%d %H:%M')}: {change['reason']}")
+    def show_memory(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        if not hasattr(pet, 'memory'):
+            print("Memory system not available for this pet.")
+            return
+        memory = pet.memory
+        print(f"\n{pet.name}'s Memory Bank:")
+        print("=" * 40)
+        print(f"Total experiences: {len(memory.experiences)}")
+        if memory.experiences:
+            print("\nRecent experiences:")
+            for exp in memory.experiences[-5:]:  
+                timestamp = exp["timestamp"].strftime("%m/%d %H:%M")
+                impact = "positive" if exp["emotional_impact"] > 0 else "negative" if exp["emotional_impact"] < 0 else "neutral"
+                print(f"  {timestamp}: {exp['type']} - {impact} impact")
+                if exp["details"]:
+                    detail_str = str(exp["details"])[:50] + "..." if len(str(exp["details"])) > 50 else str(exp["details"])
+                    print(f"    Details: {detail_str}")
+        print(f"\nMost common activities:")
+        for activity, data in list(memory.behavior_patterns.items())[:3]:
+            print(f"  {activity}: {data['count']} times")
+    def show_evolution(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        print(f"\n{pet.name}'s Evolution Status:")
+        print("=" * 40)
+        print(f"Current stage: {pet.evolution_stage}")
+        print(f"Evolution points: {getattr(pet, 'evolution_points', 0)}")
+        if hasattr(pet, 'memory'):
+            experiences = len(pet.memory.experiences)
+            print(f"Total experiences: {experiences}")
+            next_requirements = {
+                "baby": ("juvenile", 100),
+                "juvenile": ("adolescent", 250), 
+                "adolescent": ("adult", 500),
+                "adult": ("elder", 1000)
+            }
+            if pet.evolution_stage in next_requirements:
+                next_stage, required_exp = next_requirements[pet.evolution_stage]
+                progress = min(100, (experiences / required_exp) * 100)
+                bar = self.create_stat_bar(progress)
+                print(f"Progress to {next_stage}: [{bar}] {experiences}/{required_exp}")
+            else:
+                print("Maximum evolution stage reached!")
+    def trigger_evolution(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        if hasattr(pet, 'evolve_based_on_experience'):
+            if pet.evolve_based_on_experience():
+                print(f"\nEvolution occurred! {pet.name} is now a {pet.evolution_stage}!")
+                print("New abilities and traits have been unlocked!")
+            else:
+                print(f"{pet.name} is not ready to evolve yet.")
+                print("Continue interacting to gain more experience.")
+        else:
+            print("Evolution system not available for this pet.")
+    def show_behavioral_insights(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        insights = pet.get_behavioral_insights()
+        print(f"\n{pet.name}'s Behavioral Insights:")
+        print("=" * 40)
+        for insight in insights:
+            print(f"  - {insight}")
+        if hasattr(pet, 'favorite_activities') and pet.favorite_activities:
+            print("\nActivity enjoyment levels:")
+            for activity, data in pet.favorite_activities.items():
+                avg_enjoyment = data["enjoyment_total"] / max(1, data["times_played"])
+                print(f"  {activity}: {avg_enjoyment:.1f}/20 enjoyment (played {data['times_played']} times)")
+        if hasattr(pet, 'preferred_foods') and pet.preferred_foods:
+            print("\nFood satisfaction levels:")
+            for food, data in pet.preferred_foods.items():
+                avg_satisfaction = data["satisfaction_total"] / max(1, data["times_eaten"])
+                print(f"  {food}: {avg_satisfaction:.1f}/20 satisfaction (eaten {data['times_eaten']} times)")
+    def show_behavioral_patterns(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        if not hasattr(pet, 'memory'):
+            print("Pattern learning not available for this pet.")
+            return
+        memory = pet.memory
+        print(f"\n{pet.name}'s Learned Patterns:")
+        print("=" * 40)
+        if memory.time_patterns:
+            print("Activity patterns by time of day:")
+            for hour in sorted(memory.time_patterns.keys()):
+                activities = memory.time_patterns[hour]
+                if activities:
+                    total_activities = sum(activities.values())
+                    most_common = max(activities.items(), key=lambda x: x[1])
+                    print(f"  {hour:2d}:00 - Most active: {most_common[0]} ({most_common[1]}/{total_activities} activities)")
+        if hasattr(pet, 'interaction_frequency_history'):
+            recent_days = pet.interaction_frequency_history[-7:]  
+            if recent_days:
+                avg_interactions = sum(day["interactions"] for day in recent_days) / len(recent_days)
+                print(f"\nAverage daily interactions (last 7 days): {avg_interactions:.1f}")
+    def show_environment_info(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        from pet import EnvironmentSensor
+        time_mod = EnvironmentSensor.get_time_of_day_modifier()
+        seasonal_mod = EnvironmentSensor.get_seasonal_modifier()
+        print(f"\nEnvironmental Status:")
+        print("=" * 40)
+        hour = datetime.now().hour
+        print(f"Current time: {hour}:00")
+        print(f"Preferred activity: {time_mod.get('activity_preference', 'any')}")
+        print(f"Energy modifier: {time_mod.get('energy', 1.0):.1f}x")
+        print(f"Happiness modifier: {time_mod.get('happiness', 1.0):.1f}x")
+        month = datetime.now().month
+        season = EnvironmentSensor._get_season(month)
+        print(f"\nCurrent season: {season}")
+        print(f"Health modifier: {seasonal_mod.get('health', 1.0):.1f}x")
+        print(f"Energy modifier: {seasonal_mod.get('energy', 1.0):.1f}x")
+        print(f"Happiness modifier: {seasonal_mod.get('happiness', 1.0):.1f}x")
+        if hasattr(pet, 'environmental_sensitivity'):
+            sensitivity = pet.environmental_sensitivity
+            sensitivity_desc = "highly sensitive" if sensitivity > 1.3 else "moderately sensitive" if sensitivity > 0.7 else "less sensitive"
+            print(f"\n{pet.name} is {sensitivity_desc} to environmental changes ({sensitivity:.2f})")
+    def show_preferences(self, args):
+        if not self.game_manager.pet:
+            print("No pet found.")
+            return
+        pet = self.game_manager.pet
+        print(f"\n{pet.name}'s Learned Preferences:")
+        print("=" * 40)
+        if hasattr(pet, 'preferred_foods') and pet.preferred_foods:
+            print("Food preferences (by satisfaction):")
+            food_items = [(food, data["satisfaction_total"] / max(1, data["times_eaten"])) 
+                         for food, data in pet.preferred_foods.items()]
+            food_items.sort(key=lambda x: x[1], reverse=True)
+            for food, avg_satisfaction in food_items:
+                preference = "loves" if avg_satisfaction > 15 else "likes" if avg_satisfaction > 10 else "tolerates"
+                print(f"  {food}: {preference} ({avg_satisfaction:.1f}/20)")
+        if hasattr(pet, 'favorite_activities') and pet.favorite_activities:
+            print("\nActivity preferences (by enjoyment):")
+            activity_items = [(activity, data["enjoyment_total"] / max(1, data["times_played"])) 
+                            for activity, data in pet.favorite_activities.items()]
+            activity_items.sort(key=lambda x: x[1], reverse=True)
+            for activity, avg_enjoyment in activity_items:
+                preference = "adores" if avg_enjoyment > 15 else "enjoys" if avg_enjoyment > 10 else "accepts"
+                print(f"  {activity}: {preference} ({avg_enjoyment:.1f}/20)")
+        if hasattr(pet, 'memory') and pet.memory.time_patterns:
+            print("\nTime preferences:")
+            best_times = {}
+            for hour, activities in pet.memory.time_patterns.items():
+                total = sum(activities.values())
+                if total > 5:  
+                    best_times[hour] = total
+            if best_times:
+                sorted_times = sorted(best_times.items(), key=lambda x: x[1], reverse=True)
+                for hour, count in sorted_times[:3]:  
+                    print(f"  {hour:2d}:00 - Very active ({count} interactions)")
